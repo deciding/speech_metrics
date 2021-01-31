@@ -22,32 +22,55 @@ from metrics import read_wav_scipy_float64, get_mfcc_pw, eval_nn_mcd, eval_pesq_
 
 #TODO
 exp_dir='/workspace/GANVocoder/egs/vctk/voc1/exp/train_nodev_all_vctk_ms_melgan_v1/'
+exp_dir='/workspace/ssd2/hifi-gan/cp_vctk_v1'
 #exp_dir='/workspace/GANVocoder/egs/vctk/voc1/exp/train_nodev_all_vctk_multi_band_melgan.v2/'
-use_file=True
-logfile='logs/res.log'
+use_file=False
+checkpoint=None
+checkpoint='g_00312000'
 
-checkpoints=os.listdir(f'{exp_dir}/wav')
-checkpoints.sort(key=lambda k: int(''.join(filter(str.isdigit, k))), reverse=True)
-checkpoint=checkpoints[0]
+name=os.path.basename(exp_dir)
+if 'cp_vctk' not in name:
+    if checkpoint is None:
+        checkpoints=os.listdir(f'{exp_dir}/wav')
+        checkpoints.sort(key=lambda k: int(''.join(filter(str.isdigit, k))), reverse=True)
+        checkpoint=checkpoints[0]
+    logfile=f'logs/res_{name}_{checkpoint}.log'
 
-gt_globs=[
-        '/workspace/GANVocoder/egs/vctk/voc1/dump/dev_all/norm/*/*.h5',
-        '/workspace/GANVocoder/egs/vctk/voc1/dump/eval_all/norm/*/*.h5',
-        '/workspace/GANVocoder/egs/vctk/voc1/dump1/train_nodev_all/norm/*/*.h5',
-        '/workspace/GANVocoder/egs/vctk/voc1/dump1/dev_all/norm/*/*.h5',
-        '/workspace/GANVocoder/egs/vctk/voc1/dump1/eval_all/norm/*/*.h5',
-        ]
+    gt_globs=[
+            '/workspace/GANVocoder/egs/vctk/voc1/dump1/train_nodev_all/norm/*/*.h5',
+            '/workspace/GANVocoder/egs/vctk/voc1/dump1/dev_all/norm/*/*.h5',
+            '/workspace/GANVocoder/egs/vctk/voc1/dump1/eval_all/norm/*/*.h5',
+            '/workspace/GANVocoder/egs/vctk/voc1/dump/dev_all/norm/*/*.h5',
+            '/workspace/GANVocoder/egs/vctk/voc1/dump/eval_all/norm/*/*.h5',
+            ]
 
-gen_dirs=[
-        f'{exp_dir}/wav/{checkpoint}/dev_all',
-        f'{exp_dir}/wav/{checkpoint}/eval_all',
-        f'{exp_dir}/wav/{checkpoint}/train_nodev_all',
-        f'{exp_dir}/wav/{checkpoint}/dev_all',
-        f'{exp_dir}/wav/{checkpoint}/eval_all',
-        ]
+    gen_dirs=[
+            f'{exp_dir}/wav/{checkpoint}/train_nodev_all',
+            f'{exp_dir}/wav/{checkpoint}/dev_all',
+            f'{exp_dir}/wav/{checkpoint}/eval_all',
+            f'{exp_dir}/wav/{checkpoint}/dev_all',
+            f'{exp_dir}/wav/{checkpoint}/eval_all',
+            ]
 
-show_indices={'dev': [0], 'eval': [1], 'unseen_eval': [2, 3, 4]}
-show_map={k:{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0} for k in show_indices.keys()}
+    show_indices={'dev': [0], 'eval': [1], 'unseen_eval': [2, 3, 4]}
+    show_map={k:{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0} for k in show_indices.keys()}
+else:
+    if checkpoint is None:
+        checkpoints=[x for x in os.listdir(f'{exp_dir}/') if 'g_' in x]
+        checkpoints.sort(key=lambda k: int(''.join(filter(str.isdigit, k))), reverse=True)
+        checkpoint=checkpoints[0]
+    logfile=f'logs/res_{name}_{checkpoint}.log'
+
+    gt_globs=[
+            '/workspace/ssd2/hifi-gan/VCTK-Corpus/test22/*.wav',
+            ]
+
+    gen_dirs=[
+            f'/workspace/ssd2/hifi-gan/generated_{name}_{checkpoint}/',
+            ]
+
+    show_indices={'unseen_eval': [0]}
+    show_map={k:{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0} for k in show_indices.keys()}
 
 
 
@@ -74,13 +97,22 @@ if not use_file:
             #if i_file<start_ifile:
             #    continue
             try:
-                h5path=gt_file
-                wavpath=f"{gen_dir}/{os.path.basename(gt_file).split('.')[0]}_gen.wav"
-                print(h5path, wavpath)
+                if 'cp_vctk' not in name:
+                    h5path=gt_file
+                    wavpath=f"{gen_dir}/{os.path.basename(gt_file).split('.')[0]}_gen.wav"
+                    print(h5path, wavpath)
+                else:
+                    wav1path=gt_file
+                    wavpath=f"{gen_dir}/{os.path.basename(gt_file).split('.')[0]}_generated.wav"
+                    print(wav1path, wavpath)
 
                 #============read wav===============#
-                with h5py.File(h5path) as f:
-                    sig1, sr=np.array(f['wave']).astype(np.float64), 24000
+                if 'cp_vctk' not in name:
+                    with h5py.File(h5path) as f:
+                        sig1, sr=np.array(f['wave']).astype(np.float64), 24000
+                else:
+                    #import pdb;pdb.set_trace()
+                    sig1, sr=read_wav_scipy_float64(wav1path)
                 sig2, sr2=read_wav_scipy_float64(wavpath)
 
                 #============calibrate sr===============#
@@ -129,7 +161,10 @@ if not use_file:
                 metric_map['pesq'] += pesq
                 print(ind, mcd, pesq, metric_map['mcd']/(i_file+1), metric_map['pesq']/(i_file+1))
                 #print(h5path, wavpath, mcd, f0_rmse, pesq, ind, i_file, len(gt_files))
-                outf.write(f'{h5path} {wavpath} {mcd} {pesq} {ind} {i_file} {len(gt_files)}\n')
+                if 'cp_vctk' not in name:
+                    outf.write(f'{h5path} {wavpath} {mcd} {pesq} {ind} {i_file} {len(gt_files)}\n')
+                else:
+                    outf.write(f'{wav1path} {wavpath} {mcd} {pesq} {ind} {i_file} {len(gt_files)}\n')
                 outf.flush()
             except Exception as e:
                 import pdb;pdb.set_trace()
