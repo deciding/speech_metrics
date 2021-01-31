@@ -7,7 +7,7 @@ import numpy as np
 import resampy
 from metrics import read_wav_scipy_float64, get_mfcc_pw, eval_nn_mcd
 #from metrics import get_f0_pw_sptk, eval_rmse_f0
-#from metrics import eval_pesq_8k
+from metrics import eval_pesq_8k
 from metrics import eval_pesq
 
 #filename=sys.argv[1]
@@ -158,9 +158,8 @@ if not use_file:
                 #f0_rmse = eval_rmse_f0(f0_r, f0_s)[0]
                 #print('pesq: ', eval_pesq(sig1_16k, sig2_16k, 16000))
                 #import pdb;pdb.set_trace()
-                #pesq = eval_pesq_8k(sig1_8k, sig2_8k, 8000)
+                pesq_8k = eval_pesq_8k(sig1_8k, sig2_8k, 8000)
                 pesq = eval_pesq(sig1_16k, sig2_16k, 16000)
-                pesq_8k = eval_pesq(sig1_8k, sig2_8k, 8000)
                 metric_map['mcd'] += mcd
                 #metric_map['f0_rmse'] += eval_rmse_f0(f0_r, f0_s)[0]
                 ##print('pesq: ', eval_pesq(sig1_16k, sig2_16k, 16000))
