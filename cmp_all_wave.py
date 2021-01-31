@@ -5,9 +5,10 @@ from glob import glob
 from tqdm import tqdm
 import numpy as np
 import resampy
-from metrics import read_wav_scipy_float64, get_mfcc_pw, eval_nn_mcd, eval_pesq_8k
+from metrics import read_wav_scipy_float64, get_mfcc_pw, eval_nn_mcd
 #from metrics import get_f0_pw_sptk, eval_rmse_f0
-#from metrics import eval_pesq
+#from metrics import eval_pesq_8k
+from metrics import eval_pesq
 
 #filename=sys.argv[1]
 #outdir='.'
@@ -78,7 +79,7 @@ map_cnt_pairs=[[{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0}, 0] for i in range(len(gt
 
 if not use_file:
 
-    outf=open(logfile, 'a+')
+    outf=open(logfile, 'w+')
 
     bads=['p330_424']
 
@@ -136,10 +137,10 @@ if not use_file:
                 sig2=sig2[:l]
 
                 #============get resampled wavs===============#
-                #sig1_16k=resampy.resample(sig1, sr, 16000)
-                #sig2_16k=resampy.resample(sig2, sr, 16000)
-                sig1_8k=resampy.resample(sig1, sr, 8000)
-                sig2_8k=resampy.resample(sig2, sr, 8000)
+                sig1_16k=resampy.resample(sig1, sr, 16000)
+                sig2_16k=resampy.resample(sig2, sr, 16000)
+                #sig1_8k=resampy.resample(sig1, sr, 8000)
+                #sig2_8k=resampy.resample(sig2, sr, 8000)
 
                 #============get features===============#
                 mfcc1 = get_mfcc_pw(sig1, sr)
@@ -154,7 +155,8 @@ if not use_file:
                 #f0_rmse = eval_rmse_f0(f0_r, f0_s)[0]
                 #print('pesq: ', eval_pesq(sig1_16k, sig2_16k, 16000))
                 #import pdb;pdb.set_trace()
-                pesq = eval_pesq_8k(sig1_8k, sig2_8k, 8000)
+                #pesq = eval_pesq_8k(sig1_8k, sig2_8k, 8000)
+                pesq = eval_pesq(sig1_16k, sig2_16k, 16000)
                 metric_map['mcd'] += mcd
                 #metric_map['f0_rmse'] += eval_rmse_f0(f0_r, f0_s)[0]
                 ##print('pesq: ', eval_pesq(sig1_16k, sig2_16k, 16000))
