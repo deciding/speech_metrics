@@ -54,7 +54,8 @@ if 'cp_vctk' not in name:
             ]
 
     show_indices={'dev': [0], 'eval': [1], 'unseen_eval': [2, 3, 4]}
-    show_map={k:{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0} for k in show_indices.keys()}
+    #show_map={k:{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0} for k in show_indices.keys()}
+    show_map={k:{'mcd':0.0, 'pesq_8k':0.0, 'pesq':0.0} for k in show_indices.keys()}
 else:
     if checkpoint is None:
         checkpoints=[x for x in os.listdir(f'{exp_dir}/') if 'g_' in x]
@@ -71,11 +72,13 @@ else:
             ]
 
     show_indices={'unseen_eval': [0]}
-    show_map={k:{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0} for k in show_indices.keys()}
+    #show_map={k:{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0} for k in show_indices.keys()}
+    show_map={k:{'mcd':0.0, 'pesq_8k':0.0, 'pesq':0.0} for k in show_indices.keys()}
 
 
 
-map_cnt_pairs=[[{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0}, 0] for i in range(len(gt_globs))]
+#map_cnt_pairs=[[{'mcd':0.0, 'f0_rmse':0.0, 'pesq':0.0}, 0] for i in range(len(gt_globs))]
+map_cnt_pairs=[[{'mcd':0.0, 'pesq_8k':0.0, 'pesq':0.0}, 0] for i in range(len(gt_globs))]
 
 if not use_file:
 
@@ -139,8 +142,8 @@ if not use_file:
                 #============get resampled wavs===============#
                 sig1_16k=resampy.resample(sig1, sr, 16000)
                 sig2_16k=resampy.resample(sig2, sr, 16000)
-                #sig1_8k=resampy.resample(sig1, sr, 8000)
-                #sig2_8k=resampy.resample(sig2, sr, 8000)
+                sig1_8k=resampy.resample(sig1, sr, 8000)
+                sig2_8k=resampy.resample(sig2, sr, 8000)
 
                 #============get features===============#
                 mfcc1 = get_mfcc_pw(sig1, sr)
@@ -157,16 +160,21 @@ if not use_file:
                 #import pdb;pdb.set_trace()
                 #pesq = eval_pesq_8k(sig1_8k, sig2_8k, 8000)
                 pesq = eval_pesq(sig1_16k, sig2_16k, 16000)
+                pesq_8k = eval_pesq(sig1_8k, sig2_8k, 8000)
                 metric_map['mcd'] += mcd
                 #metric_map['f0_rmse'] += eval_rmse_f0(f0_r, f0_s)[0]
                 ##print('pesq: ', eval_pesq(sig1_16k, sig2_16k, 16000))
                 metric_map['pesq'] += pesq
-                print(ind, mcd, pesq, metric_map['mcd']/(i_file+1), metric_map['pesq']/(i_file+1))
+                metric_map['pesq_8k'] += pesq_8k
+                #print(ind, mcd, pesq, metric_map['mcd']/(i_file+1), metric_map['pesq']/(i_file+1))
+                print(ind, mcd, pesq_8k, pesq, metric_map['mcd']/(i_file+1), metric_map['pesq_8k']/(i_file+1), metric_map['pesq']/(i_file+1))
                 #print(h5path, wavpath, mcd, f0_rmse, pesq, ind, i_file, len(gt_files))
                 if 'cp_vctk' not in name:
-                    outf.write(f'{h5path} {wavpath} {mcd} {pesq} {ind} {i_file} {len(gt_files)}\n')
+                    #outf.write(f'{h5path} {wavpath} {mcd} {pesq} {ind} {i_file} {len(gt_files)}\n')
+                    outf.write(f'{h5path} {wavpath} {mcd} {pesq_8k} {pesq} {ind} {i_file} {len(gt_files)}\n')
                 else:
-                    outf.write(f'{wav1path} {wavpath} {mcd} {pesq} {ind} {i_file} {len(gt_files)}\n')
+                    #outf.write(f'{wav1path} {wavpath} {mcd} {pesq} {ind} {i_file} {len(gt_files)}\n')
+                    outf.write(f'{wav1path} {wavpath} {mcd} {pesq_8k} {pesq} {ind} {i_file} {len(gt_files)}\n')
                 outf.flush()
             except Exception as e:
                 import pdb;pdb.set_trace()
